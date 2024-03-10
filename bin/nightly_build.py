@@ -676,8 +676,8 @@ def main():
 
 
     
-    # if test_runner.execute_makefile(target = args.target):
-    #    print(f"The {args.target} tests were made successfully")
+    if test_runner.execute_makefile(target = args.target):
+       print(f"The {args.target} tests were made successfully")
 
     #############################################
     #               RUN TESTS                   #
