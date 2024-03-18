@@ -610,9 +610,61 @@ def main():
 
     args = parser.parse_args()
 
-    
+     ############################################
+    #           SET ENV VARS                   #
+    ############################################
 
+
+    current_directory = Path(__file__).resolve().parent
     
+    # wally
+    WALLY = current_directory.parent
+    os.environ['WALLY'] = str(WALLY)
+
+    # riscv
+    RISCV = Path('/opt/riscv')
+    os.environ['RISCV'] = str(RISCV)
+
+    # verilator
+    VERILATOR = RISCV.joinpath('verilator')
+
+    # Modelsim
+    MODSIM = Path('/opt/ModelSim')
+    os.environ['MODSIM'] = str(MODSIM)
+
+    # LD Library
+    LD_LIBRARY_PATH = Path('/usr/lib:/lib')
+    os.environ['LD_LIBRARY_PATH'] = str(LD_LIBRARY_PATH)
+
+    # Modelsim setup
+    os.environ['MGC_DOC_PATH'] = os.path.join(os.environ['MODSIM'], 'docs')
+    os.environ['MGC_PDF_READER'] = 'evince'
+    os.environ['MGC_HTML_BROWSER'] = 'firefox'
+
+    # License
+    os.environ['MGLS_LICENSE_FILE'] = '1717@trelaina.ecen.okstate.edu'
+    os.environ['IMPERASD_LICENSE_FILE'] = '2700@trelaina.ecen.okstate.edu'
+
+    # Path
+    current_path = os.environ['PATH']
+    print(f"Current path {current_path}")
+    PATH = os.path.join(current_path,f':/opt/riscv/ImperasDV-OpenHW/scripts/cvw:/opt/riscv/ImperasDV-OpenHW/Imperas/bin/Linux64:{VERILATOR}:{WALLY}:{WALLY}/bin:{RISCV}/bin:{MODSIM}/questasim/bin')
+    # PATH = Path(f'/opt/riscv/ImperasDV-OpenHW/scripts/cvw:/opt/riscv/ImperasDV-OpenHW/Imperas/bin/Linux64:{VERILATOR}:/home/thkidd/nightly-runs/cvw/bin:/home/thkidd/.local/bin:/opt/riscv/ImperasDV-OpenHW/scripts/cvw:/opt/riscv/ImperasDV-OpenHW/Imperas/bin/Linux64:/opt/riscv/verilator:/home/thkidd/nightly-runs/cvw/bin:/home/thkidd/.cargo/bin:/home/thkidd/.npm-global/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/home/thkidd/Apps/nvim-linux64/bin:/home/thkidd/.local/bin/lvim:/opt/riscv/bin:/opt/ModelSim/questasim/bin:/opt/riscv/bin:/opt/ModelSim/questasim/bin')
+    print(f"New Path {PATH}")
+    os.environ['PATH'] = str(PATH)
+    PATH = Path(os.environ['PATH'])
+    
+    # imperas
+    IDV = os.path.join(os.environ['RISCV'], 'ImperasDV-OpenHW')
+    if os.path.exists(IDV):
+        os.environ['IMPERAS_HOME'] = os.path.join(IDV, 'Imperas')
+        os.environ['IMPERAS_PERSONALITY'] = 'CPUMAN_DV_ASYNC'
+        os.environ['ROOTDIR'] = os.path.join(WALLY, '..')
+        # source ${IMPERAS_HOME}/bin/setup.sh
+        # setupImperas ${IMPERAS_HOME}
+        os.environ['PATH'] = os.path.join(IDV, 'scripts/cvw') + ':' + os.environ.get('PATH', '')
+
+
     #############################################
     #                 SETUP                     #
     #############################################
@@ -667,8 +719,16 @@ def main():
     logger.info(f"results path: {results_path}")
     logger.info(f"log folder path: {log_path}")
     logger.info(f"log file path: {log_file_path}")
-    
+    # PATHS
+    logger.info(f'$WALLY set to {WALLY}')
+    logger.info(f'$RISCV set to {RISCV}')
+    logger.info(f'verilator path: {VERILATOR}')
+    logger.info(f'$MODSIM set to {MODSIM}')
+    logger.info(f'$LD_LIBRARY_PATH set to {LD_LIBRARY_PATH}')
+    logger.info(f'$PATH set to {PATH}')
 
+
+   
     test_runner = TestRunner(logger, log_path) # creates the object
     test_runner.set_env_var(cvw_path) # ensures that the new WALLY environmental variable is set correctly
 
