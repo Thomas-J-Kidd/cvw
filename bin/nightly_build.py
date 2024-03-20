@@ -56,6 +56,7 @@ Dependencies:
         - subprocess
         - argparse
         - logging
+        - yaml
 
     Bash:
         - mutt (email sender)
@@ -74,6 +75,7 @@ import subprocess
 import argparse
 import logging
 from pathlib import Path
+import yaml
 
 
 
@@ -381,6 +383,52 @@ class TestRunner:
         self.logger.info(f"Cleaned test results. Passed configs {passed_configs}. Failed configs: {failed_configs}")
         return passed_configs, failed_configs
 
+    def save_test_results(self, successful_tests, failed_tests):
+        """
+        Save the test results to a yaml file so they can be read in later. 
+        This helps not rerun the tests every time if you want to work on the formatting of this script
+
+        Args:
+            successful_tests (list): a list a successful tests
+            failed_tests (list): a list of failed tests
+        Return: True or False
+        """
+
+        yaml_path = self.results_dir.joinpath("test_results.yaml")
+
+        data =  {
+            'successful_tests': successful_tests,
+            'failed_tests': failed_tests
+                }
+
+        with open(str(yaml_path), 'w') as file:
+            yaml.dump(data, file)
+
+        return True
+
+    def read_test_results(self):
+        """
+        Read the test results to a yaml file so they can be read in later. 
+        This helps not rerun the tests every time if you want to work on the formatting of this script
+
+        Args:
+            None
+        Return: 
+            successful_tests (list)
+            failed_test (list)
+        """
+        
+        yaml_path = self.results_dir.joinpath("test_results.yaml")
+        
+        with open(str(yaml_path), 'r') as file:
+            data = yaml.safe_load(file)
+            successful_tests = data.get('successful_tests', [])
+            failed_tests = data.get('failed_tests', [])
+
+        return successful_tests, failed_tests
+
+
+
     def rewrite_to_markdown(self, test_name, passed_configs, failed_configs):
         """
         Rewrite test results to markdown format.
@@ -447,7 +495,14 @@ class TestRunner:
         os.chdir(self.results_dir)
         output_file = self.results_dir.joinpath("results.md")
         
-
+        # Check if coverage report table exists
+        coverage = False
+        covarage_table = self.results_dir.joinpath("coverage_table.md")
+        if coverage_table.exists():
+            coverage = True 
+            with open(coverage_table, "r") as cov_table:
+                covarege_lines = cov_table.readlines()
+                
         with open(output_file, 'w') as md_file:
             # Title
             md_file.write(f"\n\n# Nightly Test Results - {self.todays_date}\n\n")
@@ -476,6 +531,10 @@ class TestRunner:
             md_file.write(f"**Total Successes: {total_number_success}**\n")
             md_file.write(f"**Total Failures: {total_number_failures}**\n")
 
+            # Include Coverage Table
+            if coverage:
+                md_file.write(covarege_lines)
+            
             # Failed Tests
             md_file.write(f"\n\n## Failed Tests")
             md_file.write(f"\n**Total failed tests: {total_number_failures}**")
@@ -594,6 +653,61 @@ class TestRunner:
         except expression as identifier:
             self.logger.error(f"Error sending email with error: {identifier}")
 
+    def grab_coverage_report(self):
+        input_file_path = self.sim_dir.joinpath("cov/rv64gc_uncovered_hierarchical.rpt") 
+        output_file_path = self.results_dir.joinpath("coverage_table.md") 
+        # Read the contents of the file
+        with open(str(input_file_path), 'r') as file:
+            lines = file.readlines()
+
+        # Iterate through each line to find and modify the target line
+        for i, line in enumerate(lines):
+            if line.startswith("Instance"):
+                # Replace 'FSM States' with 'FSM_States'
+                modified_line = line.replace('FSM States', 'FSM_States')
+                modified_line = modified_line.replace('FSM Transitions', 'FSM_Transitions')
+                modified_line = modified_line.replace('Covergroup Bins', 'Covergroup_Bins')
+                # Update the line in the list of lines
+                lines[i] = modified_line
+
+        # Write the modified contents back to the file
+        with open(str(input_file_path), 'w') as file:
+            file.writelines(lines)
+
+        # Open the file and read the lines
+        with open(str(input_file_path), "r") as file:
+            lines = file.readlines()
+
+        # Initialize a flag to track when the table starts
+        table_started = False
+        markdown_table = []
+
+        # Iterate through the lines
+        for line in lines:
+            # Check if the line contains the table header
+            if line.startswith("Instance"):
+                table_started = True
+                # Add the header row
+                markdown_table.append("| " + " | ".join(line.split()) + " |")
+                markdown_table.append("| " + " | ".join(["-" * len(col) for col in line.split()]) + " |")
+            # Check if the table has started and the line is not empty
+            elif table_started and line.strip():
+                # Split the line into columns and add it to the markdown table
+                columns = line.split()
+                markdown_table.append("| " + " | ".join(columns) + " |")
+            # Check if the line is empty, indicating the end of the table
+            elif table_started and not line.strip():
+                table_started = False
+                break
+
+        # Write the markdown table to a file
+        if markdown_table:
+            with open(str(output_file_path), "w") as md_file:
+                md_file.write("\n".join(markdown_table))
+                md_file.write("\n")
+        else:
+            print("Table not found in the file.")
+
 
 
 def main():
@@ -690,57 +804,72 @@ def main():
     #              MAKE TESTS                   #
     #############################################
 
-    if args.target != "no":
-        # test_runner.execute_makefile(target = "deriv")
-        test_runner.execute_makefile(target = args.target)
+    # if args.target != "no":
+    #     # test_runner.execute_makefile(target = "deriv")
+    #     test_runner.execute_makefile(target = args.target)
 
     #############################################
     #               RUN TESTS                   #
     #############################################
 
 
-    test_list = [["python", "regression-wally", "-nightly"], ["bash", "lint-wally", "-nightly"], ["bash", "coverage", "--search"]]
-    output_log_list = [] # a list where the output markdown file lcoations will be saved to
-    total_number_failures = 0  # an integer where the total number failures from all of the tests will be collected
-    total_number_success = 0    # an integer where the total number of sucess will be collected
+    # test_list = [["python", "regression-wally", "-nightly"], ["bash", "lint-wally", "-nightly"], ["bash", "coverage", "--search"]]
+    # output_log_list = [] # a list where the output markdown file lcoations will be saved to
+    # total_number_failures = 0  # an integer where the total number failures from all of the tests will be collected
+    # total_number_success = 0    # an integer where the total number of sucess will be collected
 
-    total_failures = []
-    total_success = []
+    # total_failures = []
+    # total_success = []
 
-    for test_type, test_name, test_exctention in test_list:
+    # for test_type, test_name, test_exctention in test_list:
+    #     
+    #     check, output_location = test_runner.run_tests(test_type=test_type, test_name=test_name, test_exctention=test_exctention)
+    #     try:
+    #         if check: # this checks if the test actually ran successfuly
+    #             output_log_list.append(output_location)
+    #             logger.info(f"{test_name} ran successfuly. Output location: {output_location}")
+    #             # format tests to markdown
+    #             try:
+    #                 passed, failed = test_runner.clean_format_output(input_file = output_location)
+    #                 logger.info(f"{test_name} has been formatted to markdown")
+    #             except:
+    #                 logger.ERROR(f"Error occured with formatting {test_name}")
+
+    #             logger.info(f"The # of failures are for {test_name}: {len(failed)}")
+    #             total_number_failures+= len(failed)
+    #             total_failures.append(failed)
+
+    #             logger.info(f"The # of sucesses are for {test_name}: {len(passed)}")
+    #             total_number_success += len(passed)
+    #             total_success.append(passed)
+    #             # test_runner.rewrite_to_markdown(test_name, passed, failed)
+    # 
+    #     except Exception as e:
+    #         logger.error("There was an error in running the tests: {e}")
+
+    # logger.info(f"The total sucesses for all tests ran are: {total_number_success}")
+    # logger.info(f"The total failures for all tests ran are: {total_number_failures}")
+
+
+    # #############################################
+    # #             WRITE TO YAML                 #
+    # #############################################
+    # test_runner.save_test_results(total_success, total_failures)
+
+    #############################################
+    #            READ FROM YAML                 #
+    #############################################
+    try:
+        total_success, total_failures = test_runner.read_test_results()
+        logger.info(f"Successfult tests ran: {len(total_success)}")
+        logger.info(f"Failed tests ran: {len(total_failures)}")
+    except Exception as e:
+        logger.error(f"Error occured reading in yaml file: {e}")
+    #############################################
+    #             COVERAGE TABLE                #
+    #############################################
+    test_runner.grab_coverage_report()
         
-        check, output_location = test_runner.run_tests(test_type=test_type, test_name=test_name, test_exctention=test_exctention)
-        try:
-            if check: # this checks if the test actually ran successfuly
-                output_log_list.append(output_location)
-                logger.info(f"{test_name} ran successfuly. Output location: {output_location}")
-                # format tests to markdown
-                try:
-                    passed, failed = test_runner.clean_format_output(input_file = output_location)
-                    logger.info(f"{test_name} has been formatted to markdown")
-                except:
-                    logger.ERROR(f"Error occured with formatting {test_name}")
-
-                logger.info(f"The # of failures are for {test_name}: {len(failed)}")
-                total_number_failures+= len(failed)
-                total_failures.append(failed)
-
-                logger.info(f"The # of sucesses are for {test_name}: {len(passed)}")
-                total_number_success += len(passed)
-                total_success.append(passed)
-                test_runner.rewrite_to_markdown(test_name, passed, failed)
-    
-        except Exception as e:
-            logger.error("There was an error in running the tests: {e}")
-
-    logger.info(f"The total sucesses for all tests ran are: {total_number_success}")
-    logger.info(f"The total failures for all tests ran are: {total_number_failures}")
-
-
-
-
-        
-
     #############################################
     #               FORMAT TESTS                #
     #############################################

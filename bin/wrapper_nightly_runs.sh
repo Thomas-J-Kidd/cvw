@@ -4,6 +4,7 @@
 PYTHON_SCRIPT=$HOME/nightly-runs/cvw/bin/       # cvw can be anywhere you would like it. Make sure to point your variable there
 SETUP_SCRIPT=$HOME/nightly-runs/cvw/            # cvw can be anywhere you would like it. Make sure to point your variable there
 
+date
 echo "Current directory"
 pwd
 
@@ -17,5 +18,5 @@ source ./setup.sh
 cd $PYTHON_SCRIPT
 pwd
 echo "Running python file"
-python nightly_build.py 
+python nightly_build.py --send_email "test" 
 echo "Finished"
