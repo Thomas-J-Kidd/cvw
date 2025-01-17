@@ -1,0 +1,8 @@
+{
+  "label": "Hardware Architecture",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "description": "Detailed documentation of the RISC-V processor's hardware architecture, including core components, memory system, and peripherals."
+  }
+}
