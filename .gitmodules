@@ -33,3 +33,6 @@
 	path = addins/berkeley-testfloat-3
 	url = https://github.com/ucb-bar/berkeley-testfloat-3
 	ignore = untracked
+[submodule "xv6-riscv"]
+	path = xv6-riscv
+	url = git@github.com:mit-pdos/xv6-riscv.git
