@@ -33,9 +33,13 @@
 #include <stddef.h>
 
 int gpt_load_partitions() {
+  // size_t block_size = 512/8;
+  // long int lba1_buf[block_size];
+
   BYTE lba1_buf[512];
   
   int ret = 0;
+  //ret = disk_read(/* BYTE * buf, LBA_t sector, UINT count, BYTE card_type */);
   print_time();
   println("Getting GPT information.");
   ret = disk_read(lba1_buf, 1, 1);
@@ -47,32 +51,20 @@ int gpt_load_partitions() {
   BYTE lba2_buf[512];
   ret = disk_read(lba2_buf, (LBA_t)lba1->partition_entries_lba, 1);
 
-  // Load partition entries
-  // For XV6, we'll use the first partition for the device tree
-  // and the second partition for the XV6 kernel
-  partition_entries_t *fdt = (partition_entries_t *)(lba2_buf);
-  partition_entries_t *xv6 = (partition_entries_t *)(lba2_buf + 128);
-
-  // Load device tree (still needed for hardware configuration)
-  print_time();
-  println_with_int("Loading device tree at: 0x", FDT_ADDRESS);
-  ret = disk_read((BYTE *)FDT_ADDRESS, fdt->first_lba, fdt->last_lba - fdt->first_lba + 1);
-  if (ret < 0) {
-    print_uart("Failed to load device tree!\r\n");
-    return -1;
-  }
+  // Load parition entries for the relevant boot partitions.
+  partition_entries_t *kernel = (partition_entries_t *)(lba2_buf);
 
   // Load XV6 kernel
   print_time();
-  println_with_int("Loading XV6 kernel at: 0x", XV6_ADDRESS);
-  ret = disk_read((BYTE *)XV6_ADDRESS, xv6->first_lba, xv6->last_lba - xv6->first_lba + 1);
+  println_with_int("Loading XV6 Kernel at: 0x", EXT_MEM_BASE);
+  ret = disk_read((BYTE *)EXT_MEM_BASE, kernel->first_lba,kernel->last_lba - kernel->first_lba + 1);
   if (ret < 0) {
-    print_uart("Failed to load XV6 kernel!\r\n");
+    print_uart("Failed to load XV6 Kernel!\r\n");
     return -1;
   }
 
   print_time();
-  println("Done! Flashing LEDs and jumping to XV6...");
+  println("Done! Flashing LEDs and jumping to XV6 kernel...");
 
   return 0;
 }

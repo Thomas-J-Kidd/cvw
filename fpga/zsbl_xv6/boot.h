@@ -46,13 +46,6 @@ typedef QWORD LBA_t;
 // of OpenSBI. These addresses can be found in:
 // buildroot/output/build/opensbi-0.9/platform/generic/config.mk
 
-// FDT_ADDRESS now defined in system.h
-//#define FDT_ADDRESS 0xFF000000        // FW_JUMP_FDT_ADDR
-#define OPENSBI_ADDRESS EXT_MEM_BASE    // FW_TEXT_START
-#define KERNEL_ADDRESS 0x80200000       // FW_JUMP_ADDR
-
-// Define XV6 kernel address (same as OpenSBI address)
-#define XV6_ADDRESS EXT_MEM_BASE
 
 #define BANNER " █▀█        █▀█        █▀█        █▀▀                 █ █\r\n" \
 " █          █ █        █▄▀        █▄▄       ▄▄▄       █ █\r\n" \

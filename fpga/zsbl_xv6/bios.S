@@ -88,9 +88,6 @@ delay2:
 	# jump to the copied contents of the sd card.
 
 jumpToLinux:	
-	csrrs	a0, 0xF14, x0   # copy hart ID to a0
-	li	a1, FDT_ADDRESS  # This is the device tree address
-	la	a2, end_of_bios
 	li	t0, EXT_MEM_BASE  # start of code
 	
 	jalr	x0, t0, 0

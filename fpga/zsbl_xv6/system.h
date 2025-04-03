@@ -1,4 +1,3 @@
-// Keep existing definitions
 #ifndef __system_H
 #define __system_H
 
@@ -19,9 +18,5 @@
 #endif
 
 #define EXT_MEM_END (EXT_MEM_BASE + EXT_MEM_RANGE)
-#define FDT_ADDRESS (EXT_MEM_END - 0x1000000)
-
-// Define XV6 as the boot target
-#define BOOT_TARGET_XV6
 
 #endif
