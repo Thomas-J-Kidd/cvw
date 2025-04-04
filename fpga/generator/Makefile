@@ -32,7 +32,7 @@ EXT_MEM_RANGE = $(shell grep 'EXT_MEM_RANGE' ../../config/deriv/fpga$(board)/con
 
 
 .PHONY: FPGA_Arty FPGA_VCU
-FPGA_Arty: PreProcessFiles IP_Arty zsbl
+FPGA_Arty: PreProcessFiles IP_Arty zsbl_xv6
 	vivado -mode tcl -source wally.tcl 2>&1 | tee wally.log
 FPGA_VCU: PreProcessFiles IP_VCU zsbl
 	vivado -mode tcl -source wally.tcl 2>&1 | tee wally.log
@@ -76,7 +76,11 @@ PreProcessFiles:
 .PHONY: zsbl
 zsbl:
 	$(MAKE) -C ../zsbl clean
-	SYSTEMCLOCK=$(SYSTEMCLOCK) EXT_MEM_BASE=$(EXT_MEM_BASE) EXT_MEM_RANGE=$(EXT_MEM_RANGE) $(MAKE) -C ../zsbl 
+	SYSTEMCLOCK=$(SYSTEMCLOCK) EXT_MEM_BASE=$(EXT_MEM_BASE) EXT_MEM_RANGE=$(EXT_MEM_RANGE) $(MAKE) -C ../zsbl
+
+zsbl_xv6:
+	$(MAKE) -C ../zsbl clean
+	SYSTEMCLOCK=$(SYSTEMCLOCK) EXT_MEM_BASE=$(EXT_MEM_BASE) EXT_MEM_RANGE=$(EXT_MEM_RANGE) $(MAKE) -C ../zsbl_xv6
 
 # Generate Individual IP Blocks
 $(dst)/%.log: %.tcl
